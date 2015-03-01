@@ -4,10 +4,16 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
 
+/**
+ * A simple unbounded task queue with a single {@linkplain #sink sink}.
+ */
 public final class UnboundedTaskQueue extends ATaskQueue {
 
 	private final Queue<Task<?>> tasks = new LinkedList<>();
 
+	/**
+	 * The sink that feeds into this queue.
+	 */
 	public final TaskSink sink;
 
 	public UnboundedTaskQueue() {
@@ -15,24 +21,19 @@ public final class UnboundedTaskQueue extends ATaskQueue {
 	}
 
 	@Override
-	protected boolean isEmpty() {
+	protected final boolean isEmpty() {
 		return tasks.isEmpty();
 	}
 
 	@Override
-	protected Task<?> poll() {
+	protected final Task<?> poll() {
 		return tasks.poll();
 	}
 
 	@Override
-	protected final void drainTo(Collection<Task<?>> sink) {
-		lock.lock();
-		try {
-			sink.addAll(tasks);
-			tasks.clear();
-		} finally {
-			lock.unlock();
-		}
+	protected final void doDrainTo(Collection<Task<?>> sink) {
+		sink.addAll(tasks);
+		tasks.clear();
 	}
 
 }

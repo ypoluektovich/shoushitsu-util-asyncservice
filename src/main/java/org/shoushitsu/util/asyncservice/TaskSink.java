@@ -5,6 +5,13 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BooleanSupplier;
 
+/**
+ * <p>Task sinks are used to submit and order computations for asynchronous services.</p>
+ *
+ * <p>Obtain the instances of this class from the task queue they feed into.
+ * If you are implementing a task queue, see
+ * {@link org.shoushitsu.util.asyncservice.ATaskQueue#createSink(TaskSinkImplementation)}.</p>
+ */
 public final class TaskSink {
 
 	private final Lock lock;
@@ -32,6 +39,8 @@ public final class TaskSink {
 	}
 
 	/**
+	 * Submit a computation if there is space in the queue.
+	 *
 	 * @return {@code false} if the task queue is overflowing and the task can't be processed
 	 * (that is, no method on the callback will be invoked), {@code true} otherwise.
 	 */
@@ -52,6 +61,11 @@ public final class TaskSink {
 		return true;
 	}
 
+	/**
+	 * Submit a computation, waiting for the queue to have space if necessary.
+	 *
+	 * @throws InterruptedException if interrupted while waiting for the space in the queue to become available.
+	 */
 	public final <R> void put(Callable<? extends R> computation, Callback<? super R> callback) throws InterruptedException {
 		lock.lock();
 		try {
