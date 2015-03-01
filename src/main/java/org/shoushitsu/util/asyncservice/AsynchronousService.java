@@ -80,6 +80,19 @@ public abstract class AsynchronousService<Q extends ATaskQueue> implements AutoC
 	}
 
 	/**
+	 * Close this service.
+	 *
+	 * <strong>Note:</strong> when overriding this method, don't forget to call {@link #closeAsynchronousService()}!
+
+	 * @throws Exception this implementation doesn't actually throw anything. The throws clause is to allow
+	 * service implementations to throw checked exceptions.
+	 */
+	@Override
+	public void close() throws Exception {
+		closeAsynchronousService();
+	}
+
+	/**
 	 * <p>Closes the service, waiting some time for the workers to complete.</p>
 	 *
 	 * <p>When this method is invoked, new tasks stop being accepted into the {@linkplain #queue}.
@@ -87,12 +100,10 @@ public abstract class AsynchronousService<Q extends ATaskQueue> implements AutoC
 	 * or until the {@linkplain #terminationTimeout termination timeout} occurs. Once any of that happens,
 	 * this method returns.</p>
 	 *
-	 * <p>If the invoking thread is interrupted while waiting for the workers,
-	 * the {@link InterruptedException} is suppressed and the {@linkplain Thread#isInterrupted() interrupted status}
-	 * is set to {@code true}.</p>
+	 * <p>If the invoking thread is interrupted while waiting for the workers, the {@link InterruptedException} is
+	 * suppressed and the {@linkplain Thread#isInterrupted() interrupted status} is set to {@code true}.</p>
 	 */
-	@Override
-	public void close() {
+	protected final void closeAsynchronousService() {
 		try {
 			workers.close(terminationTimeout, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException ignore) {
