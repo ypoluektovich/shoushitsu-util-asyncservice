@@ -1,4 +1,59 @@
-apply plugin: 'java'
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.0'
+    }
+}
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+group = 'org.shoushitsu.util'
+version = '1.0.0'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+publishing {
+    publications {
+        main(MavenPublication) {
+            artifactId = 'asyncservice'
+            from components.java
+            artifact sourcesJar
+        }
+    }
+}
+
+bintray {
+    user = bintray_user
+    key = bintray_apiKey
+    publications = ['main']
+    dryRun = false
+    publish = false
+    pkg {
+        repo = 'shoushitsu'
+        name = 'util-asyncservice'
+        desc = 'A library for building callback-based asynchronous services'
+        websiteUrl = 'https://github.com/ypoluektovich/shoushitsu-util-asyncservice'
+        issueTrackerUrl = 'https://github.com/ypoluektovich/shoushitsu-util-asyncservice/issues'
+        vcsUrl = 'https://github.com/ypoluektovich/shoushitsu-util-asyncservice.git'
+        licenses = ['MPL-2.0']
+        publicDownloadNumbers = true
+        version {
+            name = project.version
+            vcsTag = 'v1.0.0'
+        }
+    }
+}
