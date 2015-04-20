@@ -35,19 +35,35 @@ public abstract class AsynchronousService<Q extends ATaskQueue> implements AutoC
 	 * Create a new asynchronous service.
 	 *
 	 * @param taskQueue the queue to take tasks from.
-	 * @param threadCount how many worker threads this service will have.
+	 * @param threading specifies how many threads to use and how to create them.
 	 * @param terminationTimeout how long to wait for the workers to complete pending tasks
 	 * when {@linkplain #close() closing} the service.
 	 */
-	protected AsynchronousService(Q taskQueue, int threadCount, int terminationTimeout) {
+	protected AsynchronousService(Q taskQueue, Threading threading, int terminationTimeout) {
 		queue = taskQueue;
 		this.terminationTimeout = terminationTimeout;
 		workers = new FixedLoopingRunnablePool(
-				new WorkerIteration(queue),
-				threadCount,
-				Thread::new,
-				() -> queue.terminate()
+				new WorkerIteration(taskQueue),
+				threading.threadCount,
+				threading.createThreadFactory(),
+				() -> taskQueue.terminate()
 		);
+	}
+
+	/**
+	 * Create a new asynchronous service.
+	 *
+	 * @param taskQueue the queue to take tasks from.
+	 * @param threadCount how many worker threads this service will have.
+	 * @param terminationTimeout how long to wait for the workers to complete pending tasks
+	 * when {@linkplain #close() closing} the service.
+	 *
+	 * @deprecated in favor of the {@linkplain #AsynchronousService(ATaskQueue, Threading, int) constructor
+	 * with Threading specifier}. This constructor may be removed in a future major release.
+	 */
+	@Deprecated
+	protected AsynchronousService(Q taskQueue, int threadCount, int terminationTimeout) {
+		this(taskQueue, Threading.defaultThreads(threadCount), terminationTimeout);
 	}
 
 	private static final class WorkerIteration implements Runnable {
