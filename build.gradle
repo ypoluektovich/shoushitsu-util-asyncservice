@@ -12,7 +12,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
 group = 'org.shoushitsu.util'
-version = '1.0.1'
+version = '1.1.0'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
@@ -53,7 +53,7 @@ bintray {
         publicDownloadNumbers = true
         version {
             name = project.version
-            vcsTag = 'v1.0.0'
+            vcsTag = 'v' + project.version
         }
     }
 }
