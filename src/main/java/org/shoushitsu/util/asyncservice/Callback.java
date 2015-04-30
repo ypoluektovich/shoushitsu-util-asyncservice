@@ -80,4 +80,16 @@ public interface Callback<R> {
 		};
 	}
 
+	static <R> Callback<R> onSuccess(Consumer<R> onSuccess) {
+		return madeOf(onSuccess, null, null);
+	}
+
+	static <R> Callback<R> onFailure(Consumer<Throwable> onFailure) {
+		return madeOf(null, onFailure, null);
+	}
+
+	static <R> Callback<R> onTermination(Runnable onTermination) {
+		return madeOf(null, null, onTermination);
+	}
+
 }
