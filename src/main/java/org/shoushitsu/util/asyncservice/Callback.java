@@ -44,6 +44,7 @@ public interface Callback<R> {
 
 	/**
 	 * A factory method that makes a callback out of three functional objects (for use with lambdas).
+	 * Any of the parameters can be {@code null}; that is equivalent to a do-nothing method.
 	 *
 	 * @param onSuccess will be called if the asynchronous task {@linkplain #success(Object) succeeds}.
 	 * @param onFailure will be called if the asynchronous task {@linkplain #failure(Throwable) fails}.
@@ -58,17 +59,23 @@ public interface Callback<R> {
 		return new Callback<R>() {
 			@Override
 			public void success(R data) {
-				onSuccess.accept(data);
+				if (onSuccess != null) {
+					onSuccess.accept(data);
+				}
 			}
 
 			@Override
 			public void failure(Throwable exception) {
-				onFailure.accept(exception);
+				if (onFailure != null) {
+					onFailure.accept(exception);
+				}
 			}
 
 			@Override
 			public void terminated() {
-				onTermination.run();
+				if (onTermination != null) {
+					onTermination.run();
+				}
 			}
 		};
 	}
