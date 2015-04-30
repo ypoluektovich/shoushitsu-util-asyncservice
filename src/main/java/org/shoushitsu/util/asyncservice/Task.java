@@ -34,15 +34,17 @@ public final class Task<R> implements Runnable {
 		if (completed.getAndSet(true)) {
 			return;
 		}
-		if (exception != null) {
-			callback.failure(exception);
-		} else {
-			callback.success(result);
+		if (callback != null) {
+			if (exception != null) {
+				callback.failure(exception);
+			} else {
+				callback.success(result);
+			}
 		}
 	}
 
 	final void terminate() {
-		if (completed.compareAndSet(false, true)) {
+		if (completed.compareAndSet(false, true) && callback != null) {
 			callback.terminated();
 		}
 	}

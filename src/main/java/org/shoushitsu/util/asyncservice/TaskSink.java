@@ -57,7 +57,9 @@ public final class TaskSink {
 		} finally {
 			lock.unlock();
 		}
-		callback.terminated();
+		if (callback != null) {
+			callback.terminated();
+		}
 		return true;
 	}
 
@@ -81,7 +83,9 @@ public final class TaskSink {
 		} finally {
 			lock.unlock();
 		}
-		callback.terminated();
+		if (callback != null) {
+			callback.terminated();
+		}
 	}
 
 }

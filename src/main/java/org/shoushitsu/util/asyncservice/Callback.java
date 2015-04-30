@@ -44,6 +44,7 @@ public interface Callback<R> {
 
 	/**
 	 * A factory method that makes a callback out of three functional objects (for use with lambdas).
+	 * Any of the parameters can be {@code null}; that is equivalent to a do-nothing method.
 	 *
 	 * @param onSuccess will be called if the asynchronous task {@linkplain #success(Object) succeeds}.
 	 * @param onFailure will be called if the asynchronous task {@linkplain #failure(Throwable) fails}.
@@ -53,24 +54,89 @@ public interface Callback<R> {
 	 * @param <R> the type of the result of the asynchronous computation.
 	 *
 	 * @return a callback object that calls one of the provided functions depending on the situation.
+	 *
+	 * @see #onSuccess(java.util.function.Consumer)
+	 * @see #onFailure(java.util.function.Consumer)
+	 * @see #onTermination(Runnable)
 	 */
 	static <R> Callback<R> madeOf(Consumer<R> onSuccess, Consumer<Throwable> onFailure, Runnable onTermination) {
 		return new Callback<R>() {
 			@Override
 			public void success(R data) {
-				onSuccess.accept(data);
+				if (onSuccess != null) {
+					onSuccess.accept(data);
+				}
 			}
 
 			@Override
 			public void failure(Throwable exception) {
-				onFailure.accept(exception);
+				if (onFailure != null) {
+					onFailure.accept(exception);
+				}
 			}
 
 			@Override
 			public void terminated() {
-				onTermination.run();
+				if (onTermination != null) {
+					onTermination.run();
+				}
 			}
 		};
+	}
+
+	/**
+	 * A factory method that makes a callback that only meaningfully reacts to a successful computation
+	 * and does nothing in case of either failure or termination.
+	 *
+	 * @param onSuccess will be called if the asynchronous task {@linkplain #success(Object) succeeds}.
+	 *
+	 * @param <R> the type of the result of the asynchronous computation.
+	 *
+	 * @return a callback object that calls the provided function on computation success.
+	 *
+	 * @see #madeOf(java.util.function.Consumer, java.util.function.Consumer, Runnable)
+	 * @see #onFailure(java.util.function.Consumer)
+	 * @see #onTermination(Runnable)
+	 */
+	static <R> Callback<R> onSuccess(Consumer<R> onSuccess) {
+		return madeOf(onSuccess, null, null);
+	}
+
+	/**
+	 * A factory method that makes a callback that only meaningfully reacts to a failed computation
+	 * and does nothing in case of either success or termination.
+	 *
+	 * @param onFailure will be called if the asynchronous task {@linkplain #failure(Throwable) fails}.
+	 *
+	 * @param <R> the type of the result of the asynchronous computation.
+	 *
+	 * @return a callback object that calls the provided function on computation failure.
+	 *
+	 * @see #madeOf(java.util.function.Consumer, java.util.function.Consumer, Runnable)
+	 * @see #onSuccess(java.util.function.Consumer)
+	 * @see #onTermination(Runnable)
+	 */
+	static <R> Callback<R> onFailure(Consumer<Throwable> onFailure) {
+		return madeOf(null, onFailure, null);
+	}
+
+	/**
+	 * A factory method that makes a callback that only meaningfully reacts to
+	 * the service being terminated before it can complete the computation
+	 * and does nothing in case of either success or failure.
+	 *
+	 * @param onTermination will be called if the asynchronous service is {@linkplain #terminated() terminated}
+	 *
+	 * @param <R> the type of the result of the asynchronous computation.
+	 *
+	 * @return a callback object that calls the provided function on service termination.
+	 *
+	 * @see #madeOf(java.util.function.Consumer, java.util.function.Consumer, Runnable)
+	 * @see #onSuccess(java.util.function.Consumer)
+	 * @see #onFailure(java.util.function.Consumer)
+	 */
+	static <R> Callback<R> onTermination(Runnable onTermination) {
+		return madeOf(null, null, onTermination);
 	}
 
 }
