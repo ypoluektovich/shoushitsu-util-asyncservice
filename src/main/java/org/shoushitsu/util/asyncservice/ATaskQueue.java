@@ -13,8 +13,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * To implement your own task queue, you need to do the following:</p>
  *
  * <ul>
- *     <li>Implement the abstract methods of this class. Synchronization of access to these methods <em>by the
- *     AsynchronousService</em> has been taken care of for you. You should never call these methods directly.</li>
+ *     <li>Implement the abstract methods of this class and override non-final methods where necessary.
+ *     Synchronization of access to these methods <em>by the AsynchronousService</em> has been taken care of for you.
+ *     You should never call these methods directly.</li>
  *     <li>Provide {@link org.shoushitsu.util.asyncservice.TaskSink}s using {@link #createSink(TaskSinkImplementation)
  *     createSink()}. Your implementation should document how to obtain the sink(s) for a particular queue instance.</li>
  * </ul>
@@ -54,6 +55,27 @@ public abstract class ATaskQueue {
 	 */
 	protected abstract Task<?> poll();
 
+	/**
+	 * <p>This method is called after the execution completes of a task
+	 * that was previously taken from this queue.</p>
+	 *
+	 * <p>The ordering of invocation between this method and the computation's callback is unspecified.</p>
+	 *
+	 * @apiNote This method was introduced to allow the implementation of
+	 * {@link org.shoushitsu.util.asyncservice.SplittingTaskQueue},
+	 * which provides an example of a non-trivial implementation.
+	 *
+	 * @implNote This implementation simply returns false.
+	 *
+	 * @param task the task from this queue that was completed.
+	 *
+	 * @return {@code true} if the state of the queue may have changed after this invocation,
+	 * {@code false} otherwise.
+	 */
+	protected boolean afterCallback(Task<?> task) {
+		return false;
+	}
+
 	final void drainTo(Collection<Task<?>> sink) {
 		lock.lock();
 		try {
@@ -81,12 +103,16 @@ public abstract class ATaskQueue {
 		return new TaskSink(lock, running::get, implementation, notFullOrTerminated, notEmptyOrTerminated);
 	}
 
+	final void signalAll() {
+		notEmptyOrTerminated.signalAll();
+		notFullOrTerminated.signalAll();
+	}
+
 	final void terminate() {
 		lock.lock();
 		try {
 			running.set(false);
-			notEmptyOrTerminated.signalAll();
-			notFullOrTerminated.signalAll();
+			signalAll();
 		} finally {
 			lock.unlock();
 		}

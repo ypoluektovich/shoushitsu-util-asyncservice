@@ -87,10 +87,24 @@ public abstract class AsynchronousService<Q extends ATaskQueue> implements AutoC
 			} catch (InterruptedException e) {
 				return;
 			}
+
 			if (task == null) {
 				return;
 			}
-			task.run();
+
+			try {
+				task.run();
+			} finally {
+				// we really want to call afterCallback(), so don't allow interruptions here
+				queue.lock.lock();
+				try {
+					if (queue.afterCallback(task)) {
+						queue.signalAll();
+					}
+				} finally {
+					queue.lock.unlock();
+				}
+			}
 		}
 
 	}
