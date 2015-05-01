@@ -4,14 +4,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * <strong>This is an internal class.</strong>
- * This class is made public only for the purpose of implementing user-defined task queues.
- * It may be made non-public in a future major release.
- * Do not depend on any parts of its implementation, and do not call any methods on instances of this class
- * (outside of what is required for the normal operation of a task queue you're implementing — things like
- * {@code equals()} or {@code hashCode()} or {@code toString()}).
+ * <p>Objects of this class encapsulate submitted computations.</p>
+
+ * @param <R> the type of the encapsulated computation's result.
  */
-public final class Task<R> implements Runnable {
+public final class Task<R> {
 
 	private final Callable<? extends R> computation;
 	private final Callback<? super R> callback;
@@ -22,8 +19,19 @@ public final class Task<R> implements Runnable {
 		this.callback = callback;
 	}
 
-	@Override
-	public final void run() {
+	/**
+	 * <p>Get the enclosed computation functor.</p>
+	 *
+	 * <p>This method is intended for task queues that handle different kinds of computations differently.
+	 * See, for example, {@link org.shoushitsu.util.asyncservice.SplittingTaskQueue}.</p>
+	 *
+	 * @return the computation.
+	 */
+	public final Callable<? extends R> getComputation() {
+		return computation;
+	}
+
+	final void run() {
 		R result = null;
 		Throwable exception = null;
 		try {
