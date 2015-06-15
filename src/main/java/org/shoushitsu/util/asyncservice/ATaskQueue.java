@@ -93,6 +93,20 @@ public abstract class ATaskQueue {
 	protected abstract void doDrainTo(Collection<Task<?>> sink);
 
 	/**
+	 * Run the specified action with the queue synchronization lock being held.
+	 *
+	 * @param action the action to run.
+	 */
+	protected final void doWithLock(Runnable action) {
+		lock.lock();
+		try {
+			action.run();
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
 	 * <p>Creates a properly synchronized task sink that feeds into this queue.</p>
 	 *
 	 * @param implementation the underlying implementation of the sink.

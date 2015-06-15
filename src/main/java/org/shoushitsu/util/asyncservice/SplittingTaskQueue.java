@@ -1,7 +1,7 @@
 package org.shoushitsu.util.asyncservice;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -25,12 +25,27 @@ import java.util.function.Function;
  */
 public final class SplittingTaskQueue extends ATaskQueue {
 
+	private static final int INTERNAL_LOCK_OFFSET = 0;
+	private static final int EXTERNAL_LOCK_OFFSET = 1;
+
+	private static Byte lockOffset(Byte locks, int offset) {
+		return (byte) ((locks == null ? (byte) 0 : locks) | (1 << offset));
+	}
+
+	private static Byte unlockOffset(Byte locks, int offset) {
+		if (locks == null) {
+			return null;
+		}
+		locks = (byte) (locks & ~(1 << offset));
+		return locks == 0 ? null : locks;
+	}
+
 	private final Function<Callable<?>, ?> splitter;
 
 	private final Queue<Task<?>> tasks = new LinkedList<>();
 
-	/* This set must support null elements. */
-	private final HashSet<Object> lockedBuckets = new HashSet<>();
+	/* This map must support null keys. */
+	private final HashMap<Object, Byte> lockedBuckets = new HashMap<>();
 
 	/**
 	 * The sink that feeds into this queue.
@@ -60,7 +75,7 @@ public final class SplittingTaskQueue extends ATaskQueue {
 			return true;
 		}
 		for (Task<?> task : tasks) {
-			if (!lockedBuckets.contains(splitter.apply(task.getComputation()))) {
+			if (!lockedBuckets.containsKey(splitter.apply(task.getComputation()))) {
 				return false;
 			}
 		}
@@ -75,8 +90,8 @@ public final class SplittingTaskQueue extends ATaskQueue {
 		for (Iterator<Task<?>> it = tasks.iterator(); it.hasNext(); ) {
 			Task<?> task = it.next();
 			Object bucket = splitter.apply(task.getComputation());
-			if (!lockedBuckets.contains(bucket)) {
-				lockedBuckets.add(bucket);
+			if (!lockedBuckets.containsKey(bucket)) {
+				lockedBuckets.compute(bucket, (__, locks) -> lockOffset(locks, INTERNAL_LOCK_OFFSET));
 				it.remove();
 				return task;
 			}
@@ -86,7 +101,13 @@ public final class SplittingTaskQueue extends ATaskQueue {
 
 	@Override
 	protected final boolean afterCallback(Task<?> task) {
-		lockedBuckets.remove(splitter.apply(task.getComputation()));
+		lockedBuckets.computeIfPresent(
+				splitter.apply(task.getComputation()),
+				(bucket, locks) -> {
+					locks = unlockOffset(locks, INTERNAL_LOCK_OFFSET);
+					return locks == 0 ? null : locks;
+				}
+		);
 		return true;
 	}
 
@@ -94,6 +115,20 @@ public final class SplittingTaskQueue extends ATaskQueue {
 	protected final void doDrainTo(Collection<Task<?>> sink) {
 		sink.addAll(tasks);
 		tasks.clear();
+	}
+
+	public final void lockBucket(Object bucket) {
+		doWithLock(() -> lockedBuckets.compute(
+				bucket,
+				(__, locks) -> lockOffset(locks, EXTERNAL_LOCK_OFFSET)
+		));
+	}
+
+	public final void unlockBucket(Object bucket) {
+		doWithLock(() -> lockedBuckets.computeIfPresent(
+				bucket,
+				(__, locks) -> unlockOffset(locks, EXTERNAL_LOCK_OFFSET)
+		));
 	}
 
 }
