@@ -43,6 +43,43 @@ public interface Callback<R> {
 
 
 	/**
+	 * Override this callback's {@linkplain #success(Object) success handler} with the specified consumer.
+	 * If {@code onSuccess == null}, the resulting callback will do nothing when success is reported to it
+	 * (but will still delegate non-success handling to this callback).
+	 *
+	 * @implSpec
+	 * The default implementation returns a new object that keeps a reference to this callback and uses it
+	 * to handle non-success.
+	 *
+	 * @param onSuccess the new success handler.
+	 *
+	 * @return a new Callback with the specified success handler and this callback's non-success handlers.
+	 *
+	 * @since 1.5.0
+	 */
+	default Callback<R> overrideSuccess(Consumer<? super R> onSuccess) {
+		return new Callback<R>() {
+			@Override
+			public void success(R data) {
+				if (onSuccess != null) {
+					onSuccess.accept(data);
+				}
+			}
+
+			@Override
+			public void failure(Throwable exception) {
+				Callback.this.failure(exception);
+			}
+
+			@Override
+			public void terminated() {
+				Callback.this.terminated();
+			}
+		};
+	}
+
+
+	/**
 	 * A factory method that makes a callback out of three functional objects (for use with lambdas).
 	 * Any of the parameters can be {@code null}; that is equivalent to a do-nothing method.
 	 *
@@ -80,6 +117,12 @@ public interface Callback<R> {
 				if (onTermination != null) {
 					onTermination.run();
 				}
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public Callback<R> overrideSuccess(Consumer<? super R> onSuccessOverride) {
+				return madeOf((Consumer<R>) onSuccessOverride, onFailure, onTermination);
 			}
 		};
 	}
