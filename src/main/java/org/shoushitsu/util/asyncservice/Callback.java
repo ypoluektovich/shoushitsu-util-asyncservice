@@ -53,14 +53,16 @@ public interface Callback<R> {
 	 *
 	 * @param onSuccess the new success handler.
 	 *
+	 * @param <T> the result type of the new callback.
+	 *
 	 * @return a new Callback with the specified success handler and this callback's non-success handlers.
 	 *
 	 * @since 1.5.0
 	 */
-	default Callback<R> overrideSuccess(Consumer<? super R> onSuccess) {
-		return new Callback<R>() {
+	default <T> Callback<T> overrideSuccess(Consumer<? super T> onSuccess) {
+		return new Callback<T>() {
 			@Override
-			public void success(R data) {
+			public void success(T data) {
 				if (onSuccess != null) {
 					onSuccess.accept(data);
 				}
@@ -96,7 +98,7 @@ public interface Callback<R> {
 	 * @see #onFailure(java.util.function.Consumer)
 	 * @see #onTermination(Runnable)
 	 */
-	static <R> Callback<R> madeOf(Consumer<R> onSuccess, Consumer<Throwable> onFailure, Runnable onTermination) {
+	static <R> Callback<R> madeOf(Consumer<? super R> onSuccess, Consumer<Throwable> onFailure, Runnable onTermination) {
 		return new Callback<R>() {
 			@Override
 			public void success(R data) {
@@ -121,8 +123,8 @@ public interface Callback<R> {
 
 			@SuppressWarnings("unchecked")
 			@Override
-			public Callback<R> overrideSuccess(Consumer<? super R> onSuccessOverride) {
-				return madeOf((Consumer<R>) onSuccessOverride, onFailure, onTermination);
+			public <T> Callback<T> overrideSuccess(Consumer<? super T> onSuccessOverride) {
+				return Callback.madeOf(onSuccessOverride, onFailure, onTermination);
 			}
 		};
 	}
@@ -141,7 +143,7 @@ public interface Callback<R> {
 	 * @see #onFailure(java.util.function.Consumer)
 	 * @see #onTermination(Runnable)
 	 */
-	static <R> Callback<R> onSuccess(Consumer<R> onSuccess) {
+	static <R> Callback<R> onSuccess(Consumer<? super R> onSuccess) {
 		return madeOf(onSuccess, null, null);
 	}
 
