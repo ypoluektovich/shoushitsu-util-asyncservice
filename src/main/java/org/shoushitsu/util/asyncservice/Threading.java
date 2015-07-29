@@ -1,5 +1,6 @@
 package org.shoushitsu.util.asyncservice;
 
+import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntFunction;
@@ -20,7 +21,7 @@ public final class Threading {
 	 * @throws IllegalArgumentException if {@code threadCount} is not positive.
 	 */
 	public static Threading defaultThreads(int threadCount) {
-		return new Threading(threadCount, null);
+		return new Threading(threadCount, null, null);
 	}
 
 	/**
@@ -44,7 +45,7 @@ public final class Threading {
 		if (namePattern == null) {
 			throw new IllegalArgumentException("namePattern must be non-null");
 		}
-		return new Threading(threadCount, index -> String.format(namePattern, index));
+		return new Threading(threadCount, index -> String.format(namePattern, index), null);
 	}
 
 	/**
@@ -60,30 +61,61 @@ public final class Threading {
 		if (name == null) {
 			throw new IllegalArgumentException("name must be non-null");
 		}
-		return new Threading(1, ix -> name);
+		return new Threading(1, ix -> name, null);
 	}
 
 	final int threadCount;
 
 	private final IntFunction<String> threadNameByIndex;
 
+	private final Optional<ClassLoader> contextClassLoader;
+
 	/**
 	 * @throws IllegalArgumentException if {@code threadCount} is not positive.
 	 */
-	private Threading(int threadCount, IntFunction<String> threadNameByIndex) {
+	private Threading(int threadCount, IntFunction<String> threadNameByIndex, Optional<ClassLoader> contextClassLoader) {
 		if (threadCount < 1) {
 			throw new IllegalArgumentException("thread count must be positive");
 		}
 		this.threadCount = threadCount;
 		this.threadNameByIndex = threadNameByIndex;
+		this.contextClassLoader = contextClassLoader;
+	}
+
+	/**
+	 * Set a {@linkplain Thread#getContextClassLoader() context class loader} for the threading specification.
+	 *
+	 * @param classLoader the class loader to use for the created threads. To use the system class loader,
+	 * pass {@code null} (it will override the default context class loader setting mechanism).
+	 *
+	 * @return a threading specification object that has the same specs as this, except for the context class loader.
+	 */
+	public Threading withContextClassLoader(ClassLoader classLoader) {
+		return new Threading(this.threadCount, this.threadNameByIndex, Optional.ofNullable(classLoader));
 	}
 
 	final ThreadFactory createThreadFactory() {
-		if (threadNameByIndex == null) {
-			return Thread::new;
+		return new SpecThreadFactory();
+	}
+
+	private final class SpecThreadFactory implements ThreadFactory {
+
+		private final AtomicInteger threadIndex = new AtomicInteger();
+
+		@Override
+		public Thread newThread(Runnable target) {
+			Thread thread;
+			if (threadNameByIndex == null) {
+				thread = new Thread(target);
+			} else {
+				thread = new Thread(target, threadNameByIndex.apply(threadIndex.getAndIncrement()));
+			}
+			if (contextClassLoader != null) {
+				thread.setContextClassLoader(contextClassLoader.orElse(null));
+			}
+			return thread;
 		}
-		AtomicInteger threadIndex = new AtomicInteger();
-		return target -> new Thread(target, threadNameByIndex.apply(threadIndex.getAndIncrement()));
+
 	}
 
 }
