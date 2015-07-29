@@ -47,6 +47,22 @@ public final class Threading {
 		return new Threading(threadCount, index -> String.format(namePattern, index));
 	}
 
+	/**
+	 * Use a single thread with the specified name.
+	 *
+	 * @param name the name of the thread.
+	 *
+	 * @return a threading specification object.
+	 *
+	 * @throws IllegalArgumentException if {@code name == null}.
+	 */
+	public static Threading singleThread(String name) {
+		if (name == null) {
+			throw new IllegalArgumentException("name must be non-null");
+		}
+		return new Threading(1, ix -> name);
+	}
+
 	final int threadCount;
 
 	private final IntFunction<String> threadNameByIndex;
